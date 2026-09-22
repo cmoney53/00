@@ -2,11 +2,20 @@
 
 ## Run
 
-The Replit workflow runs the dashboard from this directory:
+The Replit workflow runs the dashboard from the project root:
 
 ```sh
-cd drednot && npm start
+npm run build && npm start
 ```
+
+For Render:
+
+- **Build command:** `npm install`
+- **Start command:** `npm start`
+- **Port:** use Render's `$PORT` environment variable; the server already binds to `0.0.0.0`.
+
+The `postinstall` script downloads Puppeteer's Chrome browser during the Render
+build, so the service does not depend on a manually configured browser path.
 
 Open the dashboard in Preview and use **Start a ship fleet**. Add one Drednot
 invite URL or invite code per line and one anonymous account key per line in

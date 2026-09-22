@@ -4,6 +4,8 @@
   "description": "A drednot.io bot with web dashboard",
   "main": "server.js",
   "scripts": {
+    "build": "npx puppeteer browsers install chrome",
+    "postinstall": "npm run build",
     "start": "node server.js"
   },
   "keywords": [],
