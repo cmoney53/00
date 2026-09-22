@@ -17,28 +17,40 @@ const PALETTE_RGB = (() => {
 })();
 
 async function findChromium() {
-  if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
-  // Prefer the host-provided Chromium when available. Its Nix wrapper carries
-  // the shared-library runtime needed by Chromium in hosted workflows.
+  const fs = require("fs");
+  const configured = [
+    process.env.CHROMIUM_PATH,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+  ].filter(Boolean);
+  for (const candidate of configured) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  // Prefer Puppeteer's project-local browser cache. executablePath() is
+  // asynchronous in current Puppeteer releases; passing its Promise to
+  // existsSync() causes a deprecation warning and silently skips the browser.
+  try {
+    process.env.PUPPETEER_CACHE_DIR ||= path.join(__dirname, ".cache", "puppeteer");
+    const bundled = await require("puppeteer").executablePath();
+    if (bundled && fs.existsSync(bundled)) return bundled;
+  } catch {}
+
+  // Fall back to a host-provided Chromium when available. Its wrapper carries
+  // the shared-library runtime needed by hosted workflows.
   const { execSync } = require("child_process");
   try {
     const system = execSync("command -v chromium 2>/dev/null || true", {
       encoding: "utf8",
     }).trim();
-    if (system) return system;
-  } catch {}
-  // Fall back to Puppeteer's downloaded browser when the host does not
-  // provide Chromium (for example, on a plain Node installation).
-  try {
-    const bundled = require("puppeteer").executablePath();
-    const fs = require("fs");
-    if (bundled && fs.existsSync(bundled)) return bundled;
+    if (system && fs.existsSync(system)) return system;
   } catch {}
   try {
     const p = execSync("find /nix/store -maxdepth 3 -type f -name chromium -perm -111 2>/dev/null | head -1", { encoding: "utf8" }).trim();
-    if (p) return p;
+    if (p && fs.existsSync(p)) return p;
   } catch {}
-  return "/usr/bin/chromium";
+  throw new Error(
+    "Chromium executable not found; run `npx puppeteer browsers install chrome` during the build",
+  );
 }
 
 class DrednotBot extends EventEmitter {
