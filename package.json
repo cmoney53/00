@@ -1,0 +1,22 @@
+{
+  "name": "drednot-bot",
+  "version": "1.0.0",
+  "description": "A drednot.io bot with web dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "express": "^5.2.1",
+    "puppeteer": "^25.11.0",
+    "puppeteer-core": "^25.11.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "ws": "^8.21.3"
+  }
+}

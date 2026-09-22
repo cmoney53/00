@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drednot control room</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: #0b1020;
+      color: #e6eaf2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 15% 0%, #1b2d56, transparent 42%), #0b1020; }
+    main { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 56px; }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+    .eyebrow { margin: 0 0 7px; color: #7dd3fc; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(28px, 5vw, 44px); letter-spacing: -.04em; }
+    .muted { color: #96a3ba; }
+    button, input { border: 1px solid #334362; border-radius: 9px; background: #151f36; color: inherit; font: inherit; }
+    button { cursor: pointer; padding: 10px 14px; font-weight: 700; }
+    button:hover { border-color: #7dd3fc; background: #1a2b49; }
+     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+    .card { overflow: hidden; border: 1px solid #263552; border-radius: 16px; background: rgba(17, 26, 47, .88); box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+    .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #263552; }
+    .card-head h2 { margin: 0; font-size: 16px; }
+    .card-body { padding: 20px; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; color: #a7f3d0; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 12px #34d399; }
+    .badge.warn { color: #fde68a; }
+    .badge.warn::before { background: #fbbf24; box-shadow: 0 0 12px #fbbf24; }
+    dl { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 0; }
+    dt { margin-bottom: 4px; color: #8290a9; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    .wide { grid-column: 1 / -1; }
+    .chat { height: 230px; overflow: auto; padding: 14px 20px; background: #0a1020; font: 13px/1.5 ui-monospace, SFMono-Regular, monospace; }
+    .chat p { margin: 0 0 8px; }
+    .chat time { color: #70809e; }
+    .chat strong { color: #7dd3fc; }
+     form { display: flex; gap: 8px; margin-top: 14px; }
+    input { min-width: 0; flex: 1; padding: 10px 12px; }
+     textarea { width: 100%; min-height: 92px; resize: vertical; border: 1px solid #334362; border-radius: 9px; background: #0f172b; color: inherit; font: 13px/1.45 ui-monospace, SFMono-Regular, monospace; padding: 10px 12px; }
+     label { display: block; margin: 14px 0 7px; color: #b9c5d8; font-size: 13px; font-weight: 700; }
+     .help { margin: 6px 0 0; color: #8290a9; font-size: 12px; line-height: 1.45; }
+     .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+     .primary { border-color: #0ea5e9; background: #0369a1; }
+     .danger { color: #fecaca; }
+     .notice { margin-top: 14px; color: #a7f3d0; font-size: 13px; }
+     .notice.error { color: #fca5a5; }
+    .empty { color: #8290a9; }
+    .error { color: #fca5a5; }
+    @media (max-width: 620px) {
+      main { width: min(100% - 22px, 1100px); padding-top: 24px; }
+      header { align-items: start; flex-direction: column; }
+      .wide { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">Shadow 66 · operations</p>
+        <h1>Drednot control room</h1>
+        <p class="muted">Live status for the connected game bot.</p>
+      </div>
+      <button id="refresh" type="button">Refresh</button>
+    </header>
+    <section class="card" aria-labelledby="fleet-title">
+      <div class="card-head">
+        <div>
+          <h2 id="fleet-title">Start a ship fleet</h2>
+          <p class="help">Each line starts one independent browser bot. Use a separate anonymous key for each live ship.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="fleet-form">
+          <div style="width:100%">
+            <label for="invites">Ship invite URLs or codes</label>
+            <textarea id="invites" name="invites" required placeholder="https://drednot.io/invite/ship-one&#10;https://drednot.io/invite/ship-two"></textarea>
+            <label for="keys">Anonymous keys, in the same order</label>
+            <textarea id="keys" name="keys" required placeholder="first-account-anon-key&#10;second-account-anon-key"></textarea>
+            <p class="help">Keys are used only to create the in-memory browser sessions and are never returned in full. Reusing one key can make Drednot disconnect the other session.</p>
+            <div class="actions">
+              <button class="primary" type="submit">Start fleet</button>
+              <button id="stop-all" type="button" class="danger">Stop all bots</button>
+            </div>
+            <p id="fleet-notice" class="notice" role="status"></p>
+          </div>
+        </form>
+      </div>
+    </section>
+    <section id="bots" class="grid">
+      <div class="card"><div class="card-body muted">Loading bot status…</div></div>
+    </section>
+  </main>
+  <script>
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+    const time = (ts) => ts ? new Date(ts).toLocaleTimeString() : "—";
+
+    function botCard(bot) {
+      const healthy = ["ready", "running", "connected", "in-game"].includes(bot.status);
+       const afkLabel = bot.afkEnabled ? "AFK on" : "AFK off";
+       const ship = bot.currentShip && (bot.currentShip.name || bot.currentShip.id)
+         ? `${bot.currentShip.name || "Unnamed"}${bot.currentShip.id ? ` · ${bot.currentShip.id}` : ""}`
+         : "Waiting for ship";
+       return `<article class="card wide" data-id="${esc(bot.id)}">
+        <div class="card-head">
+          <h2>${esc(bot.label)}</h2>
+           <div><span class="badge ${healthy ? "" : "warn"}">${esc(bot.status || "unknown")}</span></div>
+        </div>
+        <div class="card-body">
+          <dl>
+            <div><dt>Bot</dt><dd>${esc(bot.botName)}</dd></div>
+            <div><dt>Target</dt><dd>${esc(bot.target)}</dd></div>
+            <div><dt>Key</dt><dd>…${esc(bot.anonymousKeyTail || "not configured")}</dd></div>
+            <div><dt>Started</dt><dd>${time(bot.startedAt)}</dd></div>
+             <div><dt>Ship</dt><dd>${esc(ship)}</dd></div>
+             <div><dt>Keep-alive</dt><dd>${esc(afkLabel)}</dd></div>
+          </dl>
+           <div class="actions">
+             <button type="button" class="afk-toggle">${esc(afkLabel)}</button>
+             <button type="button" class="rejoin">Rejoin ship</button>
+             <button type="button" class="remove danger">Stop bot</button>
+           </div>
+          <form class="say-form">
+            <input name="text" maxlength="300" placeholder="Send a game chat message" aria-label="Game chat message">
+            <button type="submit">Send</button>
+          </form>
+        </div>
+        <div class="chat"><span class="empty">Loading chat…</span></div>
+      </article>`;
+    }
+
+    async function loadChat(card) {
+      try {
+        const response = await fetch("/api/game-chat?since=0", { cache: "no-store" });
+        if (!response.ok) return;
+        const payload = await response.json();
+        const messages = payload.messages || [];
+        const chat = $(".chat", card);
+        chat.innerHTML = messages.length
+          ? messages.map(m => `<p><time>${time(m.ts)}</time> <strong>${esc(m.author || "?")}</strong> ${esc(m.text)}</p>`).join("")
+          : '<span class="empty">No game chat received yet.</span>';
+      } catch (_) {}
+    }
+
+    async function load() {
+      const root = $("#bots");
+      try {
+        const response = await fetch("/api/bots", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const bots = await response.json();
+        root.innerHTML = bots.length
+          ? bots.map(botCard).join("")
+          : '<div class="card"><div class="card-body muted">No bots configured.</div></div>';
+        for (const bot of bots) {
+          const card = $(`[data-id="${CSS.escape(bot.id)}"]`);
+          loadChat(card);
+          $(".say-form", card).addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const input = $("input", event.currentTarget);
+            const text = input.value.trim();
+            if (!text) return;
+            const response = await fetch(`/api/bots/${encodeURIComponent(bot.id)}/say`, {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text })
+            });
+            if (response.ok) input.value = "";
+          });
+           $(".afk-toggle", card).addEventListener("click", async () => {
+             await fetch(`/api/bots/${encodeURIComponent(bot.id)}/afk`, {
+               method: "POST", headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ enabled: !bot.afkEnabled })
+             });
+             load();
+           });
+           $(".rejoin", card).addEventListener("click", async () => {
+             const response = await fetch(`/api/bots/${encodeURIComponent(bot.id)}/join`, {
+               method: "POST", headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ invite: bot.autoJoin || "" })
+             });
+             if (!response.ok) alert((await response.json()).error || "Unable to rejoin");
+             load();
+           });
+           $(".remove", card).addEventListener("click", async () => {
+             if (!confirm(`Stop ${bot.label}?`)) return;
+             await fetch(`/api/bots/${encodeURIComponent(bot.id)}`, { method: "DELETE" });
+             load();
+           });
+        }
+      } catch (error) {
+        root.innerHTML = `<div class="card"><div class="card-body error">Unable to load status: ${esc(error.message)}</div></div>`;
+      }
+    }
+    $("#fleet-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const notice = $("#fleet-notice");
+      const invites = $("#invites").value.split(/\n+/).map(v => v.trim()).filter(Boolean);
+      const anonymousKeys = $("#keys").value.split(/\n+/).map(v => v.trim()).filter(Boolean);
+      notice.className = "notice";
+      notice.textContent = "Starting fleet…";
+      try {
+        const response = await fetch("/api/fleet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invites, anonymousKeys, target: "https://drednot.io/", afkEnabled: true })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Unable to start fleet");
+        notice.textContent = `Started ${payload.bots.length} bot${payload.bots.length === 1 ? "" : "s"}.`;
+        $("#invites").value = "";
+        $("#keys").value = "";
+        load();
+      } catch (error) {
+        notice.className = "notice error";
+        notice.textContent = error.message;
+      }
+    });
+    $("#stop-all").addEventListener("click", async () => {
+      const bots = await (await fetch("/api/bots", { cache: "no-store" })).json();
+      if (!bots.length || !confirm(`Stop all ${bots.length} bots?`)) return;
+      await Promise.all(bots.map(bot => fetch(`/api/bots/${encodeURIComponent(bot.id)}`, { method: "DELETE" })));
+      load();
+    });
+    $("#refresh").addEventListener("click", load);
+    load();
+    setInterval(load, 10000);
+  </script>
+</body>
+</html>
